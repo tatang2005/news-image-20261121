@@ -1,33 +1,39 @@
-"""main.py -- entry program for the make.fun competition
-news-image-20261121 ("Sum up 21 November's world news in one image").
+#!/usr/bin/env python3
+"""Entry point for the news-image-20261121 submission.
 
-Renders the front page drawn by draw.py and writes it as entry.png:
-next to this file (for local inspection) and into the output
-directory ($MAKEFUN_OUTPUT_DIR, default /output) when it can be
-created. The render is deterministic -- running this program twice
-produces byte-identical files.
+The artwork itself is produced ahead of time by draw.py and stored in
+this repository as entry.png.  This program's only job is to deliver
+that file: it copies the entry.png sitting next to it into the output
+directory named by the MAKEFUN_OUTPUT_DIR environment variable
+(falling back to /output).
+
+It deliberately does no drawing and writes nothing into the repository
+directory, so it works even when the repository is mounted read-only.
+Only the Python standard library is used.
 """
 
 import os
+import shutil
+import sys
 
-import draw
+IMAGE_NAME = "entry.png"
+DEFAULT_OUTPUT_DIR = "/output"
 
 
-def main():
-    img = draw.render()
+def deliver():
     here = os.path.dirname(os.path.abspath(__file__))
-    local_path = os.path.join(here, "entry.png")
-    img.save(local_path)
-    print("wrote", local_path)
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-    try:
-        os.makedirs(out_dir, exist_ok=True)
-        out_path = os.path.join(out_dir, "entry.png")
-        img.save(out_path)
-        print("wrote", out_path)
-    except OSError as exc:
-        print("output dir unavailable:", exc)
+    source = os.path.join(here, IMAGE_NAME)
+    if not os.path.isfile(source):
+        print("missing artwork file: %s" % source, file=sys.stderr)
+        return 1
+
+    output_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", DEFAULT_OUTPUT_DIR)
+    os.makedirs(output_dir, exist_ok=True)
+    target = os.path.join(output_dir, IMAGE_NAME)
+    shutil.copyfile(source, target)
+    print("copied %s -> %s" % (source, target))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(deliver())
